@@ -1,25 +1,84 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Peer-graded Assignment: Course Project 1
+========================================
 
+1. Code for reading in the dataset and/or processing the data
 
-## Loading and preprocessing the data
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(lubridate)
+dataset <- read.csv("activity.csv")
+dataset$date <- ymd(dataset$date)
+dataset$weekday <- weekdays(dataset$date)
+dataset$daytype <- ifelse(dataset$weekday =="sábado"|dataset$weekday =="domingo","weekend","weekday")
+```
 
+2. Histogram of the total number of steps taken each day
 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+steps <- tibble(dataset) %>%
+         group_by(date) %>%
+         summarize(steps = sum(steps))
+hist(steps$steps,breaks = 6,xlab = "Total Steps",main = "Total number steps by day")
+```
 
-## What is mean total number of steps taken per day?
+3. Mean number of steps taken each day
 
+```{r echo=TRUE}
+mean(steps$steps,na.rm = TRUE)
+```
 
+3.1 Median number of steps taken each day
+``` {r echo=TRUE}
+median(steps$steps,na.rm = TRUE)
+```
 
-## What is the average daily activity pattern?
+4. Time series plot of the average number of steps taken
+```{r echo= TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+interval_steps <- tibble(dataset) %>%
+                  group_by(interval)%>%
+                  summarize(mean_steps = mean(steps,na.rm = TRUE))
+g <- ggplot(interval_steps,aes(interval,mean_steps))+geom_line()
+print(g)
+```
 
+5.The 5-minute interval that, on average, contains the maximum number of steps
+```{r echo= TRUE}
+interval_steps[which.max(interval_steps$mean_steps),]
+```
 
+6. Code to describe and show a strategy for imputing missing data
+```{r echo=TRUE}
+imputed <- dataset
+imputed$steps[is.na(imputed$steps)] <-mean(imputed$steps,na.rm = TRUE,)
+imputed$steps <-round(imputed$steps,digits = 0)
+```
 
-## Imputing missing values
+7. Histogram of the total number of steps taken each day after missing values are imputed
+```{r echo = TRUE,message=FALSE, warning=FALSE }
+library(dplyr)
+imputed_steps <- tibble(imputed) %>%
+  group_by(date) %>%
+  summarize(steps = sum(steps))
 
+hist(imputed_steps$steps,breaks = 6,xlab = "Total Steps",main = "Total number steps by day (imputed)")
+```
 
+8.  Mean number of steps taken each day (imputed)
+```{r echo = TRUE} 
+mean(imputed_steps$steps,na.rm = TRUE)
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+9.  Median number of steps taken each day (imputed)
+```{r echo = TRUE} 
+median(imputed_steps$steps,na.rm = TRUE)
+```
+
+10.Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+``` {r echo = TRUE,message=FALSE, warning=FALSE}
+weekend_steps <- tibble(imputed) %>%
+                 group_by(interval,daytype) %>%
+                 summarize(numsteps = mean(steps))
+library(lattice)
+xyplot(numsteps ~ interval|daytype,weekend_steps,layout =c(1,2),type = "l")
+```
